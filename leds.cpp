@@ -1725,7 +1725,11 @@ void LEDS_run_layers()
 						for (byte z = 0; z < _M_NR_FORM_BYTES_; z++) 
 							for (byte i = 0; i < 8; i++) 
 <<<<<<< HEAD
+<<<<<<< HEAD
 								if (bitRead(form_menu_fft[z][_M_FORM_FFT_RUN], i) == true )  tpm_fx.mixHistoryOntoLedArray(leds_FFT_history, leds, form_cfg[i + (z * 8)].nr_leds, form_cfg[i + (z * 8)].start_led, bitRead(form_menu_fft[z][_M_FORM_FFT_REVERSED], i),  bitRead(form_menu_fft[z][_M_FORM_FFT_MIRROR],i ) , MixModeType(form_fx_fft[i + (z * 8)].mix_mode),  form_fx_fft[i + (z * 8)].level, bitRead(form_menu_fft[z][_M_FORM_FFT_ONECOLOR] , i), form_fx_fft[i + (z * 8)].offset  );
+=======
+								if (bitRead(form_menu_fft[z][_M_FORM_FFT_RUN], i) == true )  tpm_fx.mixOntoLedArray(leds_FFT_history, leds, form_cfg[i + (z * 8)].nr_leds, form_cfg[i + (z * 8)].start_led+ form_fx_fft[i + (z * 8)].offset, bitRead(form_menu_fft[z][_M_FORM_FFT_REVERSED], i),  bitRead(form_menu_fft[z][_M_FORM_FFT_MIRROR],i ) , MixModeType(form_fx_fft[i + (z * 8)].mix_mode),  form_fx_fft[i + (z * 8)].level, bitRead(form_menu_fft[z][_M_FORM_FFT_ONECOLOR] , i)  );
+>>>>>>> parent of baaefd1... Fixed FFT after TF_lib and added mmqt testing
 =======
 								if (bitRead(form_menu_fft[z][_M_FORM_FFT_RUN], i) == true )  tpm_fx.mixOntoLedArray(leds_FFT_history, leds, form_cfg[i + (z * 8)].nr_leds, form_cfg[i + (z * 8)].start_led+ form_fx_fft[i + (z * 8)].offset, bitRead(form_menu_fft[z][_M_FORM_FFT_REVERSED], i),  bitRead(form_menu_fft[z][_M_FORM_FFT_MIRROR],i ) , MixModeType(form_fx_fft[i + (z * 8)].mix_mode),  form_fx_fft[i + (z * 8)].level, bitRead(form_menu_fft[z][_M_FORM_FFT_ONECOLOR] , i)  );
 >>>>>>> parent of baaefd1... Fixed FFT after TF_lib and added mmqt testing
