@@ -8,22 +8,271 @@
 
 */
 
+
+
+
+#include <Arduino.h>
+//#include <WiFi.h>
+//#include <ESPmDNS.h>
+//#include <ArduinoOTA.h>
+#include <FS.h>
+
+#include <AsyncTCP.h>
+
+#include <SPIFFS.h>
+#include <SPIFFSEditor.h>
+#include <ESPAsyncWebServer.h>
+
+
+#include <Update.h>
+
+
+// SKETCH BEGIN
+AsyncWebServer server(88);
+//AsyncWebSocket ws("/ws");
+//AsyncEventSource events("/events");
+
+
+/*
+const char* ssid = "mautihome";
+const char* password = "!love4eszter!";
+const char * hostName = "esp-async";
+
+*/
+const char* http_username = "admin";
+const char* http_password = "admin";
+
+bool restartRequired = false;
+
+
+
+extern 	void httpd_setupUI();
+
+
+
+
+
+void httpd_setup(){
+ /* Serial.begin(115200);
+  Serial.setDebugOutput(true);
+  delay(10);
+  Serial.printf("START\n");
+
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(hostName);
+  WiFi.begin(ssid, password);
+  WiFi.setHostname(hostName);
+
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.printf("STA: Failed!\n");
+    WiFi.disconnect(false);
+    delay(1000);
+    WiFi.begin(ssid, password);
+  }
+
+  Serial.print ( "IP address: " );
+  Serial.println ( WiFi.localIP() );
+
+  //Send OTA events to the browser
+  ArduinoOTA.onStart([]() { events.send("Update Start", "ota"); });
+  ArduinoOTA.onEnd([]() { events.send("Update End", "ota"); });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    char p[32];
+    sprintf(p, "Progress: %u%%\n", (progress/(total/100)));
+    events.send(p, "ota");
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    if(error == OTA_AUTH_ERROR) events.send("Auth Failed", "ota");
+    else if(error == OTA_BEGIN_ERROR) events.send("Begin Failed", "ota");
+    else if(error == OTA_CONNECT_ERROR) events.send("Connect Failed", "ota");
+    else if(error == OTA_RECEIVE_ERROR) events.send("Recieve Failed", "ota");
+    else if(error == OTA_END_ERROR) events.send("End Failed", "ota");
+  });
+  ArduinoOTA.setHostname(hostName);
+  ArduinoOTA.begin();
+
+  MDNS.addService("http","tcp",80);
+
+  SPIFFS.begin();
+*/
+
+ // ws.onEvent(onWsEvent);
+ // server.addHandler(&ws);
+/*
+  events.onConnect([](AsyncEventSourceClient *client){
+    client->send("hello!",NULL,millis(),1000);
+  });
+  server.addHandler(&events);
+//*/
+  server.addHandler(new SPIFFSEditor(SPIFFS,http_username,http_password));
+
+  server.on("/heap", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", String(ESP.getFreeHeap()));
+  });
+
+  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.htm");
+
+  server.onNotFound([](AsyncWebServerRequest *request){
+    Serial.printf("NOT_FOUND: ");
+    if(request->method() == HTTP_GET)
+      Serial.printf("GET");
+    else if(request->method() == HTTP_POST)
+      Serial.printf("POST");
+    else if(request->method() == HTTP_DELETE)
+      Serial.printf("DELETE");
+    else if(request->method() == HTTP_PUT)
+      Serial.printf("PUT");
+    else if(request->method() == HTTP_PATCH)
+      Serial.printf("PATCH");
+    else if(request->method() == HTTP_HEAD)
+      Serial.printf("HEAD");
+    else if(request->method() == HTTP_OPTIONS)
+      Serial.printf("OPTIONS");
+    else
+      Serial.printf("UNKNOWN");
+    Serial.printf(" http://%s%s\n", request->host().c_str(), request->url().c_str());
+
+    if(request->contentLength()){
+      Serial.printf("_CONTENT_TYPE: %s\n", request->contentType().c_str());
+      Serial.printf("_CONTENT_LENGTH: %u\n", request->contentLength());
+    }
+
+    int headers = request->headers();
+    int i;
+    for(i=0;i<headers;i++){
+      AsyncWebHeader* h = request->getHeader(i);
+      Serial.printf("_HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
+    }
+
+    int params = request->params();
+    for(i=0;i<params;i++){
+      AsyncWebParameter* p = request->getParam(i);
+      if(p->isFile()){
+        Serial.printf("_FILE[%s]: %s, size: %u\n", p->name().c_str(), p->value().c_str(), p->size());
+      } else if(p->isPost()){
+        Serial.printf("_POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
+      } else {
+        Serial.printf("_GET[%s]: %s\n", p->name().c_str(), p->value().c_str());
+      }
+    }
+
+    request->send(404);
+  });
+  server.onFileUpload([](AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final){
+    if(!index)
+      Serial.printf("UploadStart: %s\n", filename.c_str());
+    Serial.printf("%s", (const char*)data);
+    if(final)
+      Serial.printf("UploadEnd: %s (%u)\n", filename.c_str(), index+len);
+  });
+  server.onRequestBody([](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+    if(!index)
+      Serial.printf("BodyStart: %u\n", total);
+    Serial.printf("%s", (const char*)data);
+    if(index + len == total)
+      Serial.printf("BodyEnd: %u\n", total);
+  });
+
+
+	server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request){
+    // the request handler is triggered after the upload has finished... 
+    // create the response, add header, and send response
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", (Update.hasError())?"FAIL":"OK");
+    response->addHeader("Connection", "close");
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    restartRequired = true;  // Tell the main loop to restart the ESP
+    request->send(response);
+  },[](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+    //Upload handler chunks in data
+    
+    if(!index){ // if index == 0 then this is the first frame of data
+      Serial.printf("UploadStart: %s\n", filename.c_str());
+      Serial.setDebugOutput(true);
+      
+      // calculate sketch space required for the update
+      uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+      if(!Update.begin(maxSketchSpace)){//start with max available size
+        Update.printError(Serial);
+      }
+     // Update.runAsync(true); // tell the updaterClass to run in async mode
+    }
+
+    //Write chunked data to the free sketch space
+    if(Update.write(data, len) != len){
+        Update.printError(Serial);
+    }
+    
+    if(final){ // if the final flag is set then this is the last frame of data
+      if(Update.end(true)){ //true to set the size to the current progress
+         Serial.printf("Update Success: %u B\nRebooting...\n", index+len);
+        } else {
+          Update.printError(Serial);
+        }
+        Serial.setDebugOutput(false);
+    }
+  });
+
+	 server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/html", "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>");
+    response->addHeader("Connection", "close");
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+
+
+
+
+
+
+  server.begin();
+
+
+	httpd_setupUI();
+}
+
+
+
+
+
+void httpd_toggle_webserver()
+	{
+	}
+
+void http_loop()
+	{
+		if (restartRequired){  // check the flag here to determine if a restart is required
+    Serial.printf("Restarting ESP\n\r");
+    restartRequired = false;
+    ESP.restart();
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+// Old Web Server trying something new.
+#ifdef  ENABLE_OLD_HTTP
+
+
 	#include "config_TPM.h"
 	#ifdef ESP32
 		#include <WiFi.h>	
 		#include <HTTPClient.h>
 		#include <ESPmDNS.h>
-		#include<SPIFFS.h>
+		#include<SPIFFS.h> 
 
-		//#ifndef PLATFORMIO
+
+
 			#include <WebServer.h>
-			WebServer  httpd(80);					// The Web Server 
-		//#else 
-		//	#include <FS.h>	
-		//	#include <ESP32WebServer.h>		
-		//	ESP32WebServer httpd(80);
-
-		//#endif
+			WebServer  httpd(88);					// The Web Server 
+		
 		#include <Update.h>
 
 		//#include <ESP32httpUpdate.h>
@@ -44,7 +293,10 @@
 
 // static serv from progmem. https://github.com/Gheotic/ESP-HTML-Compressor
 	
+	//#include <ESPAsyncWebServer.h> 
 	
+
+//#define ENABLE_OLD_HTTP
 
 
 String httpd_getContentType(String filename) {
@@ -502,6 +754,10 @@ void http_loop()
 	if (get_bool(HTTP_ENABLED) == true)
 		httpd.handleClient();
 }
+
+#endif // DEF_OLD_HTTP
+
+
 
 
 
