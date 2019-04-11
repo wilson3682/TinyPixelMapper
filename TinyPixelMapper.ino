@@ -17,7 +17,6 @@
 #include "config_fs.h"
 #include "wifi-ota.h"
 #include "leds.h"
-#include "mmqt.h"
 
 
 void setup()
@@ -44,8 +43,6 @@ void setup()
 
 	wifi_setup();
 
-	MMQT_setup() ;
-
 	debugMe("DONE Setup");
 
 
@@ -56,7 +53,5 @@ void loop()
 
 	if (get_bool(WIFI_POWER_ON_BOOT)) wifi_loop();
 	LEDS_loop();
-
-	MMQT_loop();
 
 } // end loop

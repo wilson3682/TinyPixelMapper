@@ -7,7 +7,7 @@
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "arduino.h"
-#endif 
+
 
 #include "IPAddress.h"
 
@@ -83,5 +83,6 @@
 #endif
 
 
+#endif
 #endif
 
